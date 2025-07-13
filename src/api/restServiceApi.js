@@ -1,0 +1,101 @@
+
+/**
+ * API call to fetch the exact coordinates of the desired location (latitues and longitues)
+ * The API only provides the names that are displayed in the map of the Nominatim application as its a free version 
+ * for more specific location queries need to purchase licence such as Google Maps Places API 
+ */
+const NOMINATIM_URL = "https://nominatim.openstreetmap.org/ui/search.html?q=chicago+Auditorium+Parking"
+
+
+export const dummyParkingLots = [
+    {
+        id: "1",
+        name: "EZPark Lot - Main Street",
+        description: "Convenient parking lot on Main Street in Warrensburg",
+        totalSpots: 50,
+        availableSpots: 36,
+        pricePerHour: 3.4,
+        type: "LOT",
+        openingTime: "08:00",
+        closingTime: "22:00",
+        city: "Warrensburg",
+        location: [38.7629, -93.7361],
+        rating: 4.5,
+        reviews: 120,
+    },
+    {
+        id: "2",
+        name: "EZPark Garage - University Ave",
+        description: "Multi-level parking garage near UCM campus",
+        totalSpots: 120,
+        availableSpots: 8,
+        pricePerHour: 2.5,
+        type: "GARAGE",
+        openingTime: "07:00",
+        closingTime: "23:00",
+        city: "Warrensburg",
+        location: [38.7585, -93.7351],
+        rating: 4.2,
+        reviews: 98,
+    },
+    {
+        id: "3",
+        name: "EZPark Lot - Market Street",
+        description: "Open lot next to the Farmers Market",
+        totalSpots: 35,
+        availableSpots: 3,
+        pricePerHour: 1.75,
+        type: "LOT",
+        openingTime: "06:30",
+        closingTime: "21:00",
+        city: "Warrensburg",
+        location: [38.7612, -93.7394],
+        rating: 3.9,
+        reviews: 40,
+    },
+    {
+        id: "4",
+        name: "EZPark Garage - Holden Street",
+        description: "Covered garage near downtown shopping district",
+        totalSpots: 100,
+        availableSpots: 15,
+        pricePerHour: 2.9,
+        type: "GARAGE",
+        openingTime: "07:00",
+        closingTime: "22:00",
+        city: "Warrensburg",
+        location: [38.7598, -93.7376],
+        rating: 4.6,
+        reviews: 140,
+    },
+    {
+        id: "5",
+        name: "EZPark Lot - Ridgeview Road",
+        description: "Small lot with quick access to Ridgeview Park",
+        totalSpots: 20,
+        availableSpots: 1,
+        pricePerHour: 1.5,
+        type: "LOT",
+        openingTime: "08:00",
+        closingTime: "20:00",
+        city: "Warrensburg",
+        location: [38.7651, -93.7412],
+        rating: 3.7,
+        reviews: 10,
+    },
+    {
+        id: "6",
+        name: "Warrensburg S Main Street - Diamond Club Apartments",
+        description: "Apartment complex with parking for residents and guests near Main Street",
+        totalSpots: 120,
+        availableSpots: 80,
+        pricePerHour: 3.5,
+        type: "LOT",
+        openingTime: "06:00",
+        closingTime: "23:00",
+        city: "Warrensburg",
+        location: [38.7584612, -93.7504618],
+        rating: 4.7,
+        reviews: 85
+    }
+];
