@@ -8,17 +8,25 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import "leaflet.markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-import { FiClock, FiMapPin, FiDollarSign, FiStar } from "react-icons/fi";
-import { FaParking } from "react-icons/fa"; // Add Parking icon
+import { FiClock, FiStar } from "react-icons/fi";
 import Header from "../User/Header";
-import { dummyParkingLots } from "../../api/restServiceApi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
-// Dummy parking lot data with dynamic rating + reviews + spots
-dummyParkingLots
+import { FiTool, FiMapPin, FiInfo } from "react-icons/fi";
+import { fallbackAmenities } from "../../api/restServiceApi";
+import {
+    MdLocalParking,
+    MdEvStation,
+    MdSecurity,
+    MdAccessible,
+    MdAccessTime,
+    MdPerson,
+    MdAttachMoney
+} from "react-icons/md";
+import Snackbar from "../../general/Snackbar";
+
 
 // Helper: get badge color based on availability
 const getAvailabilityBadge = (spots) => {
@@ -27,67 +35,99 @@ const getAvailabilityBadge = (spots) => {
     return "bg-red-100 text-red-800";
 };
 
-const truncateText = (text, maxLength) => {
-    if (text.length > maxLength) {
-        return text.slice(0, maxLength) + '...';
-    }
-    return text;
-};
+const truncateText = (text, maxLength) =>
+    text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
 
-// Find the cheapest parking lot
-const getCheapestLot = (lots) => {
-    return lots.reduce((cheapest, lot) =>
-        lot.pricePerHour < cheapest.pricePerHour ? lot : cheapest
+const getCheapestLot = (lots) =>
+    lots.reduce((cheapest, lot) =>
+        parseFloat(lot.pricePerHour) < parseFloat(cheapest.pricePerHour) ? lot : cheapest
     );
-};
 
-// Custom Hook to move map to selected lot
 const MoveToSelectedLot = ({ selectedLot }) => {
-    const map = useMap(); // Get the map instance
-
+    const map = useMap();
     useEffect(() => {
-        if (selectedLot && map) {
-            map.flyTo(selectedLot.location, 15, { animate: true, duration: 1 });
+        if (selectedLot?.location?.latitude && selectedLot?.location?.longitude) {
+            map.flyTo(
+                [parseFloat(selectedLot.location.latitude), parseFloat(selectedLot.location.longitude)],
+                15,
+                { animate: true, duration: 1 }
+            );
         }
     }, [selectedLot, map]);
-
     return null;
 };
 
 const ParkingLotPage = () => {
-    const [selectedLot, setSelectedLot] = useState(dummyParkingLots[0]);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [isDrawerOpen, setIsDrawerOpen] = useState(false); // For managing the drawer state
-    const [lotDetails, setLotDetails] = useState(null); // To store details of the selected lot
-    const listRef = useRef(null);
-
-    const cheapestLot = getCheapestLot(dummyParkingLots);
-
-    const filteredParkingLots = dummyParkingLots.filter((lot) =>
-        lot.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const { state } = useLocation();
+    const { city, date, startTime, endTime, parkingLots = [] } = state || {};
 
     const navigate = useNavigate();
 
+    const [selectedLot, setSelectedLot] = useState(parkingLots[0]);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [lotDetails, setLotDetails] = useState(null);
+    const listRef = useRef(null);
+
+    const cheapestLot = getCheapestLot(parkingLots);
+    fallbackAmenities
+
+    const filteredParkingLots = parkingLots.filter((lot) =>
+        lot.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     const handleBookNow = () => {
-        navigate('/vehicle-info', { state: { lotDetails } });
+        if (lotDetails.availableSpots <= 0) {
+            showSnackbar("No spots available", "error");
+            return;
+        } else {
+
+            navigate("/vehicle-info", { state: { city, date, startTime, endTime, lotDetails } });
+        }
+    };
+
+    const formatTime = (timeStr) => {
+        if (!timeStr) return "";
+        const [hour, minute] = timeStr.split(":").map(Number);
+        const date = new Date();
+        date.setHours(hour);
+        date.setMinutes(minute);
+        return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     };
 
     useEffect(() => {
         if (!listRef.current) return;
-        const card = listRef.current.querySelector(`#lot-${selectedLot.id}`);
+        const card = listRef.current.querySelector(`#lot-${selectedLot?.id}`);
         if (card) {
             card.scrollIntoView({ behavior: "smooth", block: "center" });
         }
     }, [selectedLot]);
 
-    // Function to handle the Book Now button click
-    const handleBookNowClick = (lot) => {
-        setLotDetails(lot); // Set the selected lot details to show in the drawer
-        setIsDrawerOpen(true); // Open the drawer
+
+    const [snackbar, setSnackbar] = useState({
+        message: "",
+        type: "",
+        visible: false,
+    });
+
+    const showSnackbar = (message, type = "info") => {
+        setSnackbar({ message, type, visible: true });
     };
 
-    // Function to close the drawer
+    const handleSnackbarClose = () => {
+        setSnackbar((prev) => ({ ...prev, visible: false }));
+    };
+
+
+    const handleBookNowClick = (lot) => {
+        if (lot.availableSpots <= 0) {
+            showSnackbar("No spots available", "error");
+            return;
+        }
+        setLotDetails(lot);
+        setIsDrawerOpen(true);
+    };
+
     const closeDrawer = () => {
         setIsDrawerOpen(false);
     };
@@ -95,15 +135,20 @@ const ParkingLotPage = () => {
     return (
         <div className="bg-white min-h-screen w-full overflow-hidden">
             <Header />
+            {snackbar.visible && (
+                <Snackbar
+                    message={snackbar.message}
+                    type={snackbar.type}
+                    onClose={handleSnackbarClose}
+                />
+            )}
 
             <div className="flex h-[calc(100vh-64px)]">
-                {/* Left: Parking List */}
+                {/* Sidebar */}
                 <div
                     className="w-2/6 bg-gray-50 p-5 overflow-y-auto shadow-inner"
                     style={{ maxHeight: "calc(100vh - 64px)" }}
                     ref={listRef}
-                    role="list"
-                    aria-label="Available parking lots"
                 >
                     <h2 className="text-2xl font-bold mb-6">Available Parking Lots</h2>
 
@@ -112,8 +157,7 @@ const ParkingLotPage = () => {
                         placeholder="Search parking lot..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="mb-4 p-3 w-full border border-gray-300 bg-gray-50 text-gray-700 rounded-lg shadow-sm transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 hover:border-gray-400 hover:bg-gray-100"
-                        aria-label="Search for a parking lot"
+                        className="mb-4 p-3 w-full border border-gray-300 bg-gray-50 text-gray-700 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
                     />
 
                     {filteredParkingLots.map((lot) => (
@@ -121,21 +165,13 @@ const ParkingLotPage = () => {
                             id={`lot-${lot.id}`}
                             key={lot.id}
                             onClick={() => setSelectedLot(lot)}
-                            role="listitem"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") setSelectedLot(lot);
-                            }}
-                            className={`group bg-white rounded-xl shadow-md cursor-pointer border transition-all mb-6 p-4 flex items-center gap-4 relative
-    ${selectedLot.id === lot.id ? "border-2 border-blue-600 shadow-lg scale-105" : "border-gray-200 hover:shadow-lg hover:scale-105"}`}
-                            aria-current={selectedLot.id === lot.id}
+                            className={`group bg-white rounded-xl shadow-md cursor-pointer border transition-all mb-6 p-4 flex items-center gap-4 relative ${selectedLot?.id === lot.id
+                                ? "border-2 border-blue-600 shadow-lg scale-105"
+                                : "border-gray-200 hover:shadow-lg hover:scale-105"
+                                }`}
                         >
                             {lot.id === cheapestLot.id && (
-                                <div
-                                    className={`absolute top-0 left-0 bg-gradient-to-r from-blue-500 to-teal-500 text-white text-xs font-semibold px-3 py-1 rounded-full z-10 shadow-lg flex items-center gap-1`}
-                                    aria-label="Best Value Parking Lot"
-                                    title="Best Value Parking Lot"
-                                >
+                                <div className="absolute top-0 left-0 bg-gradient-to-r from-blue-500 to-teal-500 text-white text-xs font-semibold px-3 py-1 rounded-full z-10 shadow-lg flex items-center gap-1">
                                     <FiStar className="text-white text-sm" />
                                     Best Value
                                 </div>
@@ -144,50 +180,42 @@ const ParkingLotPage = () => {
                             <img
                                 src="https://images.unsplash.com/photo-1587560699334-bea93391dcef?auto=format&fit=crop&w=80&q=60"
                                 alt={`${lot.name} parking lot`}
-                                className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
+                                className="w-20 h-20 rounded-lg object-cover"
                             />
 
                             <div className="flex flex-col flex-grow">
-                                <div className="flex items-center gap-2 text-gray-700 font-semibold text-lg">
+                                <div className="text-gray-700 font-semibold text-lg">
                                     {truncateText(lot.name, 30)}
                                 </div>
 
-                                <div className="flex items-center gap-3 mt-1 text-gray-500 text-sm">
-                                    <div className="flex items-center gap-1">
-                                        <FiStar className="text-yellow-400" />
-                                        <span>{lot.rating.toFixed(1)}</span>
-                                    </div>
-
-                                    <div className="flex items-center gap-1">
+                                <div className="flex gap-3 mt-1 text-gray-500 text-sm">
+                                    <span className="flex items-center gap-1">
+                                        ⭐ {lot?.rating?.toFixed?.(1) || "4.5"}
+                                    </span>
+                                    {/* <span className="flex items-center gap-1">
                                         <FiClock />
-                                        <span>
-                                            {lot.openingTime} - {lot.closingTime}
-                                        </span>
-                                    </div>
+                                        {lot.openingTime} - {lot.closingTime}
+                                    </span> */}
                                 </div>
 
                                 <div className="mt-1 text-sm text-gray-600 flex items-center gap-2">
                                     <span
-                                        className={`inline-block px-2 py-0.5 rounded ${getAvailabilityBadge(lot.availableSpots)}`}
-                                        aria-label={`${lot.availableSpots} spots available`}
-                                        title={`${lot.availableSpots} spots available`}
+                                        className={`inline-block px-2 py-0.5 rounded ${getAvailabilityBadge(
+                                            lot.availableSpots
+                                        )}`}
                                     >
                                         {lot.availableSpots} spots left
                                     </span>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col items-end gap-2 flex-shrink-0 min-w-[100px]">
-                                <div className="text-green-600 font-bold text-lg whitespace-nowrap">
-                                    ${lot.pricePerHour.toFixed(2)}/hr
+                            <div className="flex flex-col items-end gap-2 min-w-[100px]">
+                                <div className="text-green-600 font-bold text-lg">
+                                    ${parseFloat(lot.pricePerHour).toFixed(2)}/hr
                                 </div>
                                 <button
-                                    type="button"
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm shadow-lg
-        hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150"
-                                    onClick={() => handleBookNowClick(lot)} // Trigger the drawer on click
-                                    aria-label={`Book parking lot ${lot.name}`}
-                                    title={`Book parking lot ${lot.name}`}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-700"
+                                    onClick={() => handleBookNowClick(lot)}
                                 >
                                     View Details
                                 </button>
@@ -196,18 +224,20 @@ const ParkingLotPage = () => {
                     ))}
                 </div>
 
-                {/* Right: Map */}
-                <div className="w-4/6 h-full bg-gray-100 flex flex-col relative z-10"> {/* Set z-index for map */}
+                {/* Map */}
+                <div className="w-4/6 h-full bg-gray-100 flex flex-col relative z-10">
                     <h2 className="text-2xl font-bold p-4 bg-gray-200 border-b border-gray-300">
                         Parking Lot Location
                     </h2>
-                    <div className="flex-grow rounded-b-xl overflow-hidden relative">
+                    <div className="flex-grow overflow-hidden relative">
                         <MapContainer
-                            center={selectedLot.location}
+                            center={[
+                                parseFloat(selectedLot?.location?.latitude || 0),
+                                parseFloat(selectedLot?.location?.longitude || 0),
+                            ]}
                             zoom={15}
                             scrollWheelZoom={true}
                             style={{ height: "100%", width: "100%" }}
-                            aria-label="Parking lots map"
                         >
                             <TileLayer
                                 attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
@@ -216,16 +246,15 @@ const ParkingLotPage = () => {
                             {filteredParkingLots.map((lot) => (
                                 <Marker
                                     key={lot.id}
-                                    position={lot.location}
-                                    eventHandlers={{
-                                        click: () => {
-                                            setSelectedLot(lot);
-                                        },
-                                    }}
+                                    position={[
+                                        parseFloat(lot.location.latitude),
+                                        parseFloat(lot.location.longitude),
+                                    ]}
+                                    eventHandlers={{ click: () => setSelectedLot(lot) }}
                                     icon={
-                                        selectedLot.id === lot.id
+                                        selectedLot?.id === lot.id
                                             ? new L.Icon({
-                                                iconUrl: "https://img.icons8.com/color/48/000000/parking.png", // Selected marker
+                                                iconUrl: "https://img.icons8.com/color/48/000000/parking.png",
                                                 iconSize: [30, 30],
                                                 iconAnchor: [15, 30],
                                                 popupAnchor: [1, -34],
@@ -234,7 +263,7 @@ const ParkingLotPage = () => {
                                                 shadowSize: [41, 41],
                                             })
                                             : new L.Icon({
-                                                iconUrl: "https://img.icons8.com/ios-filled/50/000000/parking.png", // Default marker
+                                                iconUrl: "https://img.icons8.com/ios-filled/50/000000/parking.png",
                                                 iconSize: [30, 30],
                                                 iconAnchor: [15, 30],
                                                 popupAnchor: [1, -34],
@@ -243,20 +272,20 @@ const ParkingLotPage = () => {
                                                 shadowSize: [41, 41],
                                             })
                                     }
-                                    keyboard={true}
-                                    title={lot.name}
-                                    alt={`Marker for ${lot.name}`}
                                 >
                                     <Popup>
                                         <div>
                                             <h3 className="font-semibold text-lg">{lot.name}</h3>
-                                            <p>{lot.description}</p>
+                                            <p>
+                                                {lot.location?.street}, {lot.location?.city}
+                                            </p>
                                             <p>
                                                 Spots: {lot.availableSpots} / {lot.totalSpots}
                                             </p>
-                                            <p>Price: ${lot.pricePerHour.toFixed(2)} / hour</p>
+                                            <p>
+                                                Price: ${parseFloat(lot.pricePerHour).toFixed(2)} / hour
+                                            </p>
                                             <p>Type: {lot.type}</p>
-                                            <p>City: {lot.city}</p>
                                         </div>
                                     </Popup>
                                 </Marker>
@@ -267,127 +296,190 @@ const ParkingLotPage = () => {
                 </div>
             </div>
 
-            {/* Overlay */}
+            {/* Drawer Overlay */}
             <div
-                className={`fixed inset-0 bg-opacity-30 backdrop-blur-sm z-40 transition-opacity duration-300 ${isDrawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                className={`fixed inset-0 bg-opacity-30 backdrop-blur-sm z-40 transition-opacity duration-300 ${isDrawerOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+                    }`}
                 onClick={closeDrawer}
             />
 
             {/* Drawer Panel */}
             <div
-                className={`fixed top-0 right-0 h-full w-full md:w-[450px] lg:w-[500px] xl:w-[600px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ${isDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                className={`fixed top-0 right-0 h-full w-full md:w-[450px] lg:w-[500px] xl:w-[600px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ${isDrawerOpen ? "translate-x-0" : "translate-x-full"
+                    }`}
             >
-                <div className="flex flex-col h-full overflow-y-auto">
+                {lotDetails && (
+                    <div className="flex flex-col h-full overflow-y-auto">
+                        <div className="relative h-56 w-full">
+                            <img
+                                src={lotDetails.imageUrl || "https://images.pexels.com/photos/31685643/pexels-photo-31685643.jpeg"}
+                                alt="Parking Lot"
+                                className="w-full h-full object-cover"
+                            />
+                            <button
+                                className="absolute top-4 right-4 bg-white/80 hover:bg-white p-2 rounded-full shadow"
+                                onClick={closeDrawer}
+                            >
+                                ❌
+                            </button>
+                        </div>
 
-                    {/* Header Image with Close */}
-                    <div className="relative h-56 w-full">
-                        <img src={lotDetails?.imageUrl} alt="Parking Lot" className="w-full h-full object-cover" />
-                        <button
-                            className="absolute top-4 right-4 bg-white/80 hover:bg-white p-2 rounded-full shadow"
-                            onClick={closeDrawer}
-                        >
-                            ❌
-                        </button>
-                    </div>
+                        <div className="px-6 pt-4 pb-2 border-b border-gray-200">
+                            <h2 className="text-2xl font-bold text-gray-800">{lotDetails.name}</h2>
 
-                    {/* Title + Rating */}
-                    <div className="px-6 pt-4 pb-2 border-b border-gray-200">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h2 className="text-2xl font-bold text-gray-800">{lotDetails?.name}</h2>
-                                <div className="mt-1 text-sm text-gray-500 flex items-center gap-2">
-                                    <span className="flex items-center gap-1">⭐ {lotDetails?.rating}</span>
-                                    <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">🚶 {lotDetails?.distance} walk</span>
+                            <div className="mt-2 flex items-center gap-6 text-sm text-gray-600">
+                                <div className="flex items-center gap-1">
+                                    <FiStar className="text-yellow-500" />
+                                    <span>{lotDetails?.rating || "4.5"}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <FiMapPin className="text-blue-600" />
+                                    <span>{lotDetails?.location?.street}</span>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Reservation Info Section */}
-                    <div className="px-6 pt-4">
-                        <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-xl shadow-sm">
-                            <div className="space-y-1">
-                                <p className="text-sm text-gray-500">Start Time</p>
-                                <p className="text-sm font-medium text-gray-800">🕒 {lotDetails?.startTime}</p>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-sm text-gray-500">End Time</p>
-                                <p className="text-sm font-medium text-gray-800">⏰ {lotDetails?.endTime}</p>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-sm text-gray-500">Total Hours</p>
-                                <p className="text-sm font-medium text-gray-800">⏳ {lotDetails?.totalHours} hrs</p>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-sm text-gray-500">Price</p>
-                                <p className="text-sm font-medium text-gray-800">💵 ${lotDetails?.pricePerHour.toFixed(2)} / hr</p>
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Book Button */}
-                    <div className="px-6 py-5">
-                        <button
-                            className="w-full py-3 text-white bg-blue-600 hover:bg-blue-700 font-medium text-lg rounded-lg shadow-md transition-all"
-                            onClick={handleBookNow}
-                        >
-                            Book Now
-                        </button>
-                    </div>
+                        <div className="px-6 pt-4">
+                            <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-xl shadow-sm">
 
-                    {/* Amenities */}
-                    <div className="px-6 py-4 border-t border-gray-200">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-3">Amenities</h3>
-                        <div className="flex flex-wrap gap-2">
-                            {lotDetails?.amenities?.map((amenity, index) => (
-                                <div key={index} className="flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
-                                    <img src={amenity.icon} alt={amenity.name} className="w-5 h-5" />
-                                    <span>{amenity.name}</span>
+                                {/* Availability & Status */}
+                                <div className="flex flex-col gap-1">
+                                    <p className="text-sm text-gray-500">Availability</p>
+                                    <span
+                                        className={`inline-block w-fit px-2 py-0.5 rounded text-xs font-medium ${lotDetails.availableSpots > 20
+                                            ? "bg-green-100 text-green-800"
+                                            : lotDetails.availableSpots > 5
+                                                ? "bg-yellow-100 text-yellow-800"
+                                                : "bg-red-100 text-red-800"
+                                            }`}
+                                    >
+                                        {lotDetails.availableSpots} spots available
+                                    </span>
+                                    <p
+                                        className={`mt-1 text-sm font-semibold ${lotDetails.availableSpots > 0 ? "text-green-700" : "text-red-600"
+                                            }`}
+                                    >
+                                        {lotDetails.availableSpots > 0 ? "Available" : "Full"}
+                                    </p>
                                 </div>
-                            ))}
+
+                                {/* Price */}
+                                <div className="flex flex-col gap-1 items-start">
+                                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                                        <MdAttachMoney className="text-green-600" /> Rate
+                                    </p>
+                                    <p className="text-lg font-bold text-green-700">
+                                        ${parseFloat(lotDetails.pricePerHour).toFixed(2)}
+                                    </p>
+                                    <span className="text-xs text-gray-400">per hour</span>
+                                </div>
+
+                                {/* Why Choose This Lot (shortened) */}
+                                <div className="col-span-2 mt-4 bg-white rounded-md p-4 shadow-inner">
+                                    <h5 className="text-md font-semibold text-gray-800 mb-2">Why Choose This Lot?</h5>
+                                    <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+                                        <li>Highly rated by drivers ({lotDetails?.rating || "4.5"} ⭐)</li>
+                                        <li>Real-time availability with {lotDetails?.availableSpots} spots open</li>
+                                        <li>Affordable & trusted operator: {lotDetails?.location?.operator || "Certified Partner"}</li>
+                                    </ul>
+                                </div>
+
+                            </div>
+                        </div>
+
+
+                        <div className="px-6 py-5">
+                            <button
+                                className="w-full py-3 text-white bg-blue-600 hover:bg-blue-700 font-medium text-lg rounded-lg shadow-md"
+                                onClick={handleBookNow}
+                            >
+                                Book Now
+                            </button>
+                        </div>
+
+                        {/* Amenities */}
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <h4 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                                <FiTool className="text-blue-600" /> Amenities
+                            </h4>
+                            <div className="grid grid-cols-2 gap-3">
+                                {(lotDetails?.amenities?.length ? lotDetails.amenities : [
+                                    { name: "Covered Parking", icon: <MdLocalParking className="text-gray-700 text-lg" /> },
+                                    { name: "EV Charging", icon: <MdEvStation className="text-gray-700 text-lg" /> },
+                                    { name: "Security Cameras", icon: <MdSecurity className="text-gray-700 text-lg" /> },
+                                    { name: "Handicap Access", icon: <MdAccessible className="text-gray-700 text-lg" /> },
+                                    { name: "24/7 Access", icon: <MdAccessTime className="text-gray-700 text-lg" /> },
+                                    { name: "Attendant on Site", icon: <MdPerson className="text-gray-700 text-lg" /> }
+                                ]).map((amenity, index) => (
+                                    <div key={index} className="flex items-center space-x-2 text-sm text-gray-700">
+                                        {amenity.icon || (
+                                            <img src={amenity.icon} alt={amenity.name} className="w-5 h-5" />
+                                        )}
+                                        <span>{amenity.name}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+
+
+                        {/* Access Hours */}
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-gray-600 flex items-center gap-1">
+                                    <FiClock className="text-blue-600" /> Access Hours
+                                </span>
+                                <span className="text-sm font-medium text-gray-800">
+                                    {lotDetails.openingTime === "00:00" && lotDetails.closingTime === "00:00"
+                                        ? "Open 24/7"
+                                        : `Open from ${formatTime(lotDetails.openingTime)} to ${formatTime(lotDetails.closingTime)}`}
+                                </span>
+                            </div>
+                        </div>
+
+
+                        {/* How to Redeem */}
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <h4 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                                <FiInfo className="text-blue-600" /> How to Redeem
+                            </h4>
+                            <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+                                <li>License plate must match Parking Pass.</li>
+                                <li>Avoid reserved spots.</li>
+                                <li>Leave anytime during reservation.</li>
+                            </ul>
+                        </div>
+
+                        {/* Getting There */}
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <h4 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                                <FiMapPin className="text-blue-600" /> Getting There
+                            </h4>
+                            <p className="text-sm text-gray-600 leading-relaxed">
+                                {`The parking lot is located at ${lotDetails?.location?.street || "N/A"}, ${lotDetails?.location?.city || ""}, ${lotDetails?.location?.state || ""} ${lotDetails?.location?.zipCode || ""}.`}
+                                {lotDetails?.location?.landmark && ` It is situated ${lotDetails.location.landmark}.`}
+                                {lotDetails?.location?.directionsNote && ` Please note: it is a ${lotDetails.location.directionsNote.toLowerCase()}.`}
+                                {lotDetails?.location?.operator && ` This facility is operated by ${lotDetails.location.operator}.`}
+                            </p>
+                        </div>
+
+
+                        {/* Facility Reviews */}
+                        <div className="px-6 py-4">
+                            <h4 className="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                                <FiStar className="text-yellow-500" /> Facility Reviews
+                            </h4>
+                            <div className="flex items-center space-x-2 text-sm text-gray-600">
+                                <span className="text-yellow-500">⭐⭐⭐⭐⭐</span>
+                                <span>4.7/5</span>
+                                <span>Excellent</span>
+                            </div>
+                            <p className="text-sm text-gray-500 mt-1">(Based on 21 reviews from EZ Park customers)</p>
                         </div>
                     </div>
-
-                    {/* Access Hours */}
-                    <div className="px-6 py-4 border-t border-gray-200">
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-600">🕔 Access Hours</span>
-                            <span className="text-gray-800 font-medium">24/7 Open</span>
-                        </div>
-                    </div>
-
-                    {/* How to Redeem */}
-                    <div className="px-6 py-4 border-t border-gray-200">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">🎟 How to Redeem</h3>
-                        <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-                            <li>Ensure license plate matches your Parking Pass</li>
-                            <li>Do not park in “Reserved” spots</li>
-                            <li>You're free to leave at any time</li>
-                        </ul>
-                    </div>
-
-                    {/* Getting There */}
-                    <div className="px-6 py-4 border-t border-gray-200">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">📍 Getting There</h3>
-                        <p className="text-sm text-gray-600">
-                            Enter this location at <strong>918 Oak St</strong>. Operated by Metropolis. Located between E 9th and 10th St on the west side.
-                        </p>
-                    </div>
-
-                    {/* Reviews */}
-                    <div className="px-6 py-4 border-t border-gray-200 mb-6">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">⭐ Facility Reviews</h3>
-                        <div className="flex items-center space-x-2 text-sm text-gray-600">
-                            <span className="text-yellow-500">⭐⭐⭐⭐⭐</span>
-                            <span>4.7/5</span>
-                            <span className="text-green-600 font-semibold">Excellent</span>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">(Based on 21 reviews)</p>
-                    </div>
-                </div>
+                )}
             </div>
-
-
         </div>
     );
 };

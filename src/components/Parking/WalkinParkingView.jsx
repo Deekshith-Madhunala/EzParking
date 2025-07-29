@@ -1,20 +1,64 @@
-import { useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '../User/Header';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { useNavigate } from "react-router-dom";
+
+const fetchSlotStatus = async (slotId) => {
+  try {
+    const response = await fetch(`http://localhost:8080/api/parkingLots/${slotId}/status`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch slot status');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching slot status:', error);
+    return null;
+  }
+};
 
 const WalkinParkingView = () => {
   const location = useLocation();
-  const lotDetails = location.state?.lotDetails;
+  // const lotDetails = location.state?.lotDetails;
   const navigate = useNavigate();
-  
+  const [slotStatus, setSlotStatus] = useState(null);
+
+  const { state } = useLocation();
+  const { lotDetails, date, startTime, endTime = [] } = state || {};
+  console.log("lotDetails", lotDetails);
+  console.log("date", date);
+  console.log("startTime", startTime);
+  console.log("endTime", endTime);
+
+
+
+  useEffect(() => {
+    const slotId = lotDetails?.slotId || 'DCP-S01'; // You can update this logic
+    if (slotId) {
+      fetchSlotStatus(slotId).then((data) => {
+        if (data) {
+          setSlotStatus(data);
+        }
+      });
+    }
+  }, [lotDetails]);
+
+  function formatReadableTime(timeStr) {
+    if (!timeStr) return '';
+    const [hour, minute] = timeStr.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hour, minute);
+    return date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
   return (
     <>
       <Header />
       <div className="bg-white min-h-screen w-full flex flex-col md:flex-row gap-10 px-6 py-10">
-
         {/* Left: Lot Details */}
         <div className="w-full md:w-5/12 bg-white shadow-xl rounded-2xl overflow-y-auto max-h-[90vh]">
           {/* Header Image */}
@@ -28,7 +72,7 @@ const WalkinParkingView = () => {
 
           {/* Title & Rating */}
           <div className="px-6 pt-4 pb-2 border-b border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-800">{lotDetails?.name}</h2>
+            <h2 className="text-2xl font-bold text-gray-800">{lotDetails?.parkingLotName}</h2>
             <div className="mt-1 text-sm text-gray-500 flex items-center gap-2">
               <span>⭐ {lotDetails?.rating}</span>
               <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">🚶 {lotDetails?.distance} walk</span>
@@ -37,22 +81,33 @@ const WalkinParkingView = () => {
 
           {/* Reservation Info */}
           <div className="px-6 pt-4">
-            <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-xl shadow-sm">
-              <div className="space-y-1">
+            <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-xl shadow-md">
+              {/* Start Time */}
+              <div className="flex flex-col gap-1">
                 <p className="text-sm text-gray-500">Start Time</p>
-                <p className="text-sm font-medium text-gray-800">🕒 {lotDetails?.startTime}</p>
+                <p className="text-base font-semibold text-gray-800">
+                  🕒 {formatReadableTime(startTime)}
+                </p>
               </div>
-              <div className="space-y-1">
+
+              {/* End Time */}
+              <div className="flex flex-col gap-1">
                 <p className="text-sm text-gray-500">End Time</p>
-                <p className="text-sm font-medium text-gray-800">⏰ {lotDetails?.endTime}</p>
+                <p className="text-base font-semibold text-gray-800">
+                  ⏰ {formatReadableTime(endTime)}
+                </p>
               </div>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-500">Total Hours</p>
-                <p className="text-sm font-medium text-gray-800">⏳ {lotDetails?.totalHours} hrs</p>
+
+              {/* Total Hours */}
+              <div className="flex flex-col gap-1">
+                <p className="text-sm text-gray-500">Total Duration</p>
+                <p className="text-base font-semibold text-gray-800">⏳ {lotDetails?.totalHours} hrs</p>
               </div>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-500">Price</p>
-                <p className="text-sm font-medium text-gray-800">💵 ${lotDetails?.pricePerHour.toFixed(2)} / hr</p>
+
+              {/* Price */}
+              <div className="flex flex-col gap-1">
+                <p className="text-sm text-gray-500">Rate</p>
+                <p className="text-base font-semibold text-green-700">💵 ${lotDetails?.pricePerHour.toFixed(2)} / hr</p>
               </div>
             </div>
           </div>
@@ -67,14 +122,29 @@ const WalkinParkingView = () => {
             </ul>
 
             <button
-              onClick={() => navigate("/vehicle-info", { state: { lotDetails } })}
+              onClick={() => navigate("/vehicle-info", { state: { lotDetails, date, startTime, endTime } })}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg py-3 px-6 rounded-lg shadow-md transition duration-200"
             >
               Book Now
             </button>
           </div>
 
+          {/* Slot Status Info */}
+          <div className="px-6 py-4 border-t border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">🅿️ Slot Status</h3>
+            {slotStatus ? (
+              <div className="text-sm text-gray-700 space-y-1">
+                <p><strong>Slot ID:</strong> {slotStatus.slotId}</p>
+                <p><strong>Occupied:</strong> {slotStatus.occupied ? 'Yes' : 'No'}</p>
+                <p><strong>Lot Name:</strong> {slotStatus.parkingLotName}</p>
+                <p><strong>Address:</strong> {`${slotStatus.street}, ${slotStatus.city}, ${slotStatus.state} ${slotStatus.zipCode}, ${slotStatus.country}`}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">Loading slot status...</p>
+            )}
+          </div>
 
+          {/* Getting There Info */}
           <div className="px-6 py-4 border-t border-gray-200">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">📍 Getting There</h3>
             <p className="text-sm text-gray-600">
@@ -83,6 +153,7 @@ const WalkinParkingView = () => {
             </p>
           </div>
 
+          {/* Reviews */}
           <div className="px-6 py-4 border-t border-gray-200 mb-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">⭐ Facility Reviews</h3>
             <div className="flex items-center space-x-2 text-sm text-gray-600">
