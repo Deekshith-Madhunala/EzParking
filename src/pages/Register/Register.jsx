@@ -41,38 +41,89 @@ const RegistrationPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [zipcode, setZipcode] = useState('');
+
+  // Vehicle Info
+  const [licensePlate, setLicensePlate] = useState('');
+  const [vehicleType, setVehicleType] = useState('');
+  const [make, setMake] = useState('');
+  const [model, setModel] = useState('');
+  const [color, setColor] = useState('');
+
+
+
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
     e.preventDefault();
 
+    // Basic field validation
+    if (
+      !firstName.trim() || !lastName.trim() ||
+      !email.trim() || !contact.trim() || !address.trim() ||
+      !city.trim() || !zipcode.trim() ||
+      !licensePlate.trim() || !vehicleType.trim() || !make.trim() ||
+      !model.trim() || !color.trim() || !password || !confirmPassword
+    ) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+
+
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError("Passwords do not match.");
       return;
     }
 
     setLoading(true);
-    setError('');
+    setError("");
+
+    const now = new Date().toISOString();
 
     const userData = {
-      name: fullName,
-      email,
-      password,
-      phone: contact,
-      role: 'USER',
-      createdAt: new Date().toISOString(),
+      firstname: firstName.trim(),
+      lastname: lastName.trim(),
+      email: email.trim(),
+      passwordHash: password,
+      phone: contact.trim(),
+      address: address.trim(),
+      city: city.trim(),
+      zipCode: zipcode.trim(),
+      role: "USER",
+      createdAt: now,
+      vehicles: [
+        {
+          licensePlate: licensePlate.trim(),
+          vehicleType: vehicleType.trim(),
+          make: make.trim(),
+          model: model.trim(),
+          color: color.trim(),
+          registeredAt: now,
+        }
+      ]
     };
+
+
+
+    console.log("userData:", userData);
+
 
     try {
       await register(userData);
-      navigate('/');
+      navigate("/");
     } catch (err) {
-      setError(err.message || 'Registration failed');
+      setError(err.message || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="flex flex-col md:flex-row w-full min-h-screen">
@@ -84,12 +135,21 @@ const RegistrationPage = () => {
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
+          {/* Personal Info */}
           <FloatingInput
-            label="Full Name"
+            label="First Name"
             type="text"
             icon={FiUser}
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+          />
+
+          <FloatingInput
+            label="Last Name"
+            type="text"
+            icon={FiUser}
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
           />
 
           <FloatingInput
@@ -109,6 +169,24 @@ const RegistrationPage = () => {
           />
 
           <FloatingInput
+            label="Address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
+
+          <FloatingInput
+            label="City"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+          />
+
+          <FloatingInput
+            label="Zip Code"
+            value={zipcode}
+            onChange={(e) => setZipcode(e.target.value)}
+          />
+
+          <FloatingInput
             label="Password"
             type="password"
             icon={FiLock}
@@ -122,6 +200,39 @@ const RegistrationPage = () => {
             icon={FiLock}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
+          />
+
+          {/* Vehicle Info Section */}
+          <h3 className="text-lg font-medium text-gray-700 mt-4">Vehicle Details</h3>
+
+          <FloatingInput
+            label="License Plate"
+            value={licensePlate}
+            onChange={(e) => setLicensePlate(e.target.value)}
+          />
+
+          <FloatingInput
+            label="Vehicle Type"
+            value={vehicleType}
+            onChange={(e) => setVehicleType(e.target.value)}
+          />
+
+          <FloatingInput
+            label="Make"
+            value={make}
+            onChange={(e) => setMake(e.target.value)}
+          />
+
+          <FloatingInput
+            label="Model"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+          />
+
+          <FloatingInput
+            label="Color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
           />
 
           <button

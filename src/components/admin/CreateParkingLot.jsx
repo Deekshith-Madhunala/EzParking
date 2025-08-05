@@ -19,12 +19,13 @@ const CreateParkingLot = () => {
     totalSpots: "",
     availableSpots: "",
     pricePerHour: "",
-    type: "",
-    openingTime: "06:00:00",
-    closingTime: "22:00:00",
+    type: "LOT",
+    openingTime: "06:00 AM",
+    closingTime: "10:00 PM",
     createdAt: new Date().toISOString(),
-    createdBy: userId, // This will be sent to API, but not shown in UI
+    createdBy: userId,
   });
+
 
   const [locationData, setLocationData] = useState({
     street: "",
@@ -39,14 +40,49 @@ const CreateParkingLot = () => {
   const [query, setQuery] = useState("");
   const markerRef = useRef(null);
 
+
+  const convertTo24Hour = (time12h) => {
+    const [time, modifier] = time12h.trim().split(" ");
+    let [hours, minutes] = time.split(":").map(Number);
+
+    if (modifier.toUpperCase() === "PM" && hours !== 12) {
+      hours += 12;
+    }
+    if (modifier.toUpperCase() === "AM" && hours === 12) {
+      hours = 0;
+    }
+
+    // Pad with leading zeros
+    const hh = String(hours).padStart(2, "0");
+    const mm = String(minutes).padStart(2, "0");
+
+    return `${hh}:${mm}:00`; // Return in HH:mm:ss format
+  };
+
+  useEffect(() => {
+    setParkingData((prev) => ({
+      ...prev,
+      availableSpots: prev.totalSpots,
+    }));
+  }, [parkingData.totalSpots]);
+
+
   const validateForm = () => {
     const errors = [];
     if (!parkingData.name.trim()) errors.push("Name is required.");
     if (parkingData.totalSpots <= 0) errors.push("Total spots must be greater than 0.");
     if (parkingData.availableSpots < 0) errors.push("Available spots cannot be negative.");
     if (isNaN(parseFloat(parkingData.pricePerHour))) errors.push("Price per hour must be a number.");
-    if (!/^\d{2}:\d{2}:\d{2}$/.test(parkingData.openingTime)) errors.push("Opening time must be in HH:mm:ss format.");
-    if (!/^\d{2}:\d{2}:\d{2}$/.test(parkingData.closingTime)) errors.push("Closing time must be in HH:mm:ss format.");
+    const time12HrRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9] (AM|PM)$/i;
+
+    if (!time12HrRegex.test(parkingData.openingTime)) {
+      errors.push("Opening time must be in hh:mm AM/PM format.");
+    }
+
+    if (!time12HrRegex.test(parkingData.closingTime)) {
+      errors.push("Closing time must be in hh:mm AM/PM format.");
+    }
+
     if (!locationData.latitude || !locationData.longitude) errors.push("Latitude and Longitude are required.");
     return errors;
   };
@@ -79,9 +115,16 @@ const CreateParkingLot = () => {
       return;
     }
 
-    // Send `createdAt` and `createdBy` along with the parking data to the API
-    createParkingLotWithLocation(parkingData, locationData);
+    // Convert time to 24-hour format for API
+    const formattedData = {
+      ...parkingData,
+      openingTime: convertTo24Hour(parkingData.openingTime),
+      closingTime: convertTo24Hour(parkingData.closingTime),
+    };
+
+    createParkingLotWithLocation(formattedData, locationData);
   };
+
 
   const icon = new L.Icon({
     iconUrl: "https://img.icons8.com/color/48/parking.png",
@@ -159,7 +202,7 @@ const CreateParkingLot = () => {
                 <h3 className="font-semibold text-lg mb-2 text-gray-800">Parking Lot Info</h3>
                 {Object.entries(parkingData).map(([key, val]) => {
                   // Do not display `createdAt` and `createdBy` in the UI
-                  if (key === "createdAt" || key === "createdBy") return null;
+                  if (key === "createdAt" || key === "createdBy" || key === "availableSpots" || key === "type") return null;
 
                   return (
                     <input

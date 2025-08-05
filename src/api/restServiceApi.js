@@ -459,38 +459,85 @@ export const fetchSlotStatus = async (slotId) => {
 };
 
 
+export const deleteParkingLot = async (parkingLotId) => {
+  try {
+    const response = await fetch(`http://localhost:8080/api/parkingLots/${parkingLotId}`, {
+      method: 'DELETE',
+      headers: {
+        Accept: '*/*',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete parking lot');
+    }
+
+    return true; // successful deletion
+  } catch (error) {
+    console.error('Error deleting parking lot:', error);
+    return false;
+  }
+};
+
+export const updateParkingLot = async (parkingLotData) => {
+  try {
+    const response = await fetch(`http://localhost:8080/api/parkingLots/${parkingLotData.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(parkingLotData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update parking lot');
+    }
+
+    const updatedLot = await response.json();
+    return updatedLot;
+  } catch (error) {
+    console.error('Error updating parking lot:', error);
+    return null;
+  }
+};
+
+
 export async function fetchParkingLots() {
   const response = await fetch("http://localhost:8080/api/parkingLots"); // Replace with your real API URL
+  
   if (!response.ok) {
     throw new Error("Failed to fetch parking lots");
   }
   const data = await response.json();
-
+  
   // Normalize one or many parking lots
   const lotsArray = Array.isArray(data) ? data : [data];
+  console.log("data", data);
 
   return lotsArray.map(normalizeParkingLot);
 }
 
 function normalizeParkingLot(apiData) {
   return {
-    id: apiData._id?.["$oid"] || null,
+    id: apiData.id || apiData._id?.["$oid"] || null,  // FIXED
     name: apiData.name,
     totalSpots: apiData.totalSpots,
     availableSpots: apiData.availableSpots,
-    pricePerHour: parseFloat(apiData.pricePerHour?.["$numberDecimal"]) || 0,
+    pricePerHour: parseFloat(apiData.pricePerHour) || 0, // Optional: convert to number
     type: apiData.type,
-    openingTime: apiData.openingTime?.["$date"] ? new Date(apiData.openingTime["$date"]) : null,
-    closingTime: apiData.closingTime?.["$date"] ? new Date(apiData.closingTime["$date"]) : null,
-    createdAt: apiData.createdAt?.["$date"] ? new Date(apiData.createdAt["$date"]) : null,
-    locationId: apiData.location?.["$oid"] || null,
-    slots: (apiData.slots || []).map(slot => ({
-      slotId: slot.slotId,
-      isOccupied: slot.isOccupied,
+    openingTime: apiData.openingTime,
+    closingTime: apiData.closingTime,
+    createdAt: apiData.createdAt ? new Date(apiData.createdAt) : null,
+    locationId: apiData.location || apiData.location?.["$oid"] || null,
+    slots: (apiData.slots || []).map((slot) => ({
+      slotId: slot?.slotId,
+      isOccupied: slot?.occupied,
     })),
-    createdBy: apiData.createdBy?.["$oid"] || null,
+    createdBy: apiData.createdBy || apiData.createdBy?.["$oid"] || null,
   };
 }
+
 
 
 export async function getAllReservations() {
