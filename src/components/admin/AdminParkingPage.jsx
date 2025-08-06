@@ -165,7 +165,7 @@ export default function AdminParkingPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-100">
               <tr>
-                {["Name", "Type", "Total Spots", "Available Spots", "Price / Hour", "Actions"].map((heading) => (
+                {["Name", "Total Spots", "Price / Hour", "Actions"].map((heading) => (
                   <th key={heading} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
                     {heading}
                   </th>
@@ -176,9 +176,9 @@ export default function AdminParkingPage() {
               {parkingLots.map((lot) => (
                 <tr key={lot.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">{lot.name}</td>
-                  <td className="px-6 py-4">{lot.type}</td>
+                  {/* <td className="px-6 py-4">{lot.type}</td> */}
                   <td className="px-6 py-4">{lot.totalSpots}</td>
-                  <td className="px-6 py-4 text-green-600 font-semibold">{lot.availableSpots}</td>
+                  {/* <td className="px-6 py-4 text-green-600 font-semibold">{lot.availableSpots}</td> */}
                   <td className="px-6 py-4">${lot.pricePerHour}</td>
                   <td className="px-6 py-4 flex gap-4">
                     <button onClick={() => setSelectedLot(lot)} className="text-blue-600 hover:underline font-semibold">View Slots</button>

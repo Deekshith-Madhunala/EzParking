@@ -5,9 +5,23 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-const fetchSlotStatus = async (slotId) => {
+// const fetchSlotStatus = async (slotId) => {
+//   try {
+//     const response = await fetch(`http://localhost:8080/api/parkingLots/${slotId}/status`);
+//     if (!response.ok) {
+//       throw new Error('Failed to fetch slot status');
+//     }
+//     return await response.json();
+//   } catch (error) {
+//     console.error('Error fetching slot status:', error);
+//     return null;
+//   }
+// };
+
+const fetchSlotStatus = async (slotId, parkinglotId) => {
   try {
-    const response = await fetch(`http://localhost:8080/api/parkingLots/${slotId}/status`);
+    const url = `http://localhost:8080/api/parkingLots/${parkinglotId}/slots/${slotId}/status`;
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error('Failed to fetch slot status');
     }
@@ -17,6 +31,7 @@ const fetchSlotStatus = async (slotId) => {
     return null;
   }
 };
+
 
 const WalkinParkingView = () => {
   const location = useLocation();
@@ -34,9 +49,10 @@ const WalkinParkingView = () => {
 
 
   useEffect(() => {
-    const slotId = lotDetails?.slotId || 'DCP-S01'; // You can update this logic
-    if (slotId) {
-      fetchSlotStatus(slotId).then((data) => {
+    const slotId = lotDetails?.slotId || '1'; // You can update this logic
+    const parkingLotId = lotDetails?.parkingLotId || '1'; // You can update this logic
+    if (slotId && parkingLotId) {
+      fetchSlotStatus(slotId, parkingLotId).then((data) => {
         if (data) {
           setSlotStatus(data);
         }

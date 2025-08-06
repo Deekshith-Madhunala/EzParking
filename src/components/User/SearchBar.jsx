@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { FiSearch } from "react-icons/fi";
 import { useNavigate } from 'react-router-dom';
-import { fetchSlotStatus, getAllCities, getLocationsByCity, getParkingLotsByLocationId } from "../../api/restServiceApi";
+import { fetchSlotStatus, getAllCities, getLocationsByCity, getParkingLotByName, getParkingLotsByLocationId } from "../../api/restServiceApi";
 import Snackbar from "../../general/Snackbar";
 
 // Updated FloatingInput to support controlled components
@@ -75,6 +75,8 @@ const SearchBar = () => {
   const [formHeight, setFormHeight] = useState(0);
   const [activeTab, setActiveTab] = useState(1);
   const [lotIdInput, setLotIdInput] = useState('');
+  const [walkinCity, setWalkinCity] = useState('');
+  const [walkinParkingLotName, setWalkinParkingLotName] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [cities, setCities] = useState([]);
   const [selectedCity, setSelectedCity] = useState("");
@@ -172,8 +174,17 @@ const SearchBar = () => {
       });
     } else {
 
+      walkinParkingLotName
+
+      const parkingLotByName = await getParkingLotByName(walkinParkingLotName);
+      console.log("parking lots data :", parkingLotByName);
+      
+      
+      
       const slotId = lotIdInput.trim();
-      const data = await fetchSlotStatus(slotId);
+      const data = await fetchSlotStatus(slotId, parkingLotByName.id);
+      console.log("response data +++++++++++:::", data);
+      
       if (data) {
         if (data.occupied) {
           showErrorSnackbar("This parking spot is currently occupied.");
@@ -285,8 +296,22 @@ const SearchBar = () => {
           ) : (
             <div className="flex flex-col gap-5">
               <FloatingInput
-                label="Enter Parking Lot ID - DCP-S01"
+                label="Enter City"
+                placeholder= "Example : Warrensburg"
+                type="text"
+                value={walkinCity}
+                onChange={(e) => setWalkinCity(e.target.value)}
+              />
+              <FloatingInput
+                label="Enter Parking Lot Name"
                 placeholder= "Example : DCP-S01"
+                type="text"
+                value={walkinParkingLotName}
+                onChange={(e) => setWalkinParkingLotName(e.target.value)}
+              />
+              <FloatingInput
+                label="Enter Parking Lot ID "
+                placeholder= "Example : 1 or 2"
                 type="text"
                 value={lotIdInput}
                 onChange={(e) => setLotIdInput(e.target.value)}

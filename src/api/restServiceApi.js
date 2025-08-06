@@ -72,6 +72,29 @@ export const getLocationsByCity = async (cityName) => {
 
 /**
  * 
+ * @param {String} name The name of the parking lot to fetch.
+ * @returns {Object} The parking lot details in JSON format.
+ */
+export const getParkingLotByName = async (name) => {
+  try {
+    const res = await fetch(`http://localhost:8080/api/parkingLots/name/${encodeURIComponent(name)}`, {
+      headers: { accept: "application/json" }
+    });
+
+    if (!res.ok) {
+      throw new Error(`Error fetching parking lot: ${res.statusText}`);
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error("Error fetching parking lot by name:", error);
+    return null;
+  }
+};
+
+
+/**
+ * 
  * @param {locationIds of a specific city} locationId 
  * @returns a parking lot information repective to the specific location
  */
@@ -444,10 +467,11 @@ export const updateReservationStatus = async (reservationId, newStatus) => {
   }
 };
 
-
-export const fetchSlotStatus = async (slotId) => {
+export const fetchSlotStatus = async (slotId, parkinglotId) => {
   try {
-    const response = await fetch(`http://localhost:8080/api/parkingLots/${slotId}/status`);
+    const url = `http://localhost:8080/api/parkingLots/${parkinglotId}/slots/${slotId}/status`;
+    console.log('Fetching URL:', url); // Add this line to check the URL
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error('Failed to fetch slot status');
     }
@@ -457,6 +481,8 @@ export const fetchSlotStatus = async (slotId) => {
     return null;
   }
 };
+
+
 
 
 export const deleteParkingLot = async (parkingLotId) => {
@@ -505,12 +531,12 @@ export const updateParkingLot = async (parkingLotData) => {
 
 export async function fetchParkingLots() {
   const response = await fetch("http://localhost:8080/api/parkingLots"); // Replace with your real API URL
-  
+
   if (!response.ok) {
     throw new Error("Failed to fetch parking lots");
   }
   const data = await response.json();
-  
+
   // Normalize one or many parking lots
   const lotsArray = Array.isArray(data) ? data : [data];
   console.log("data", data);
