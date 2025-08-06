@@ -322,7 +322,7 @@ const SearchBar = () => {
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               />
-              <div className="flex gap-4">
+              {/* <div className="flex gap-4">
                 <FloatingInput
                   label="Start Time"
                   type="time"
@@ -349,7 +349,7 @@ const SearchBar = () => {
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
                 />
-              </div>
+              </div> */}
               <button
                 onClick={handleFindSpots}
                 className="bg-blue-500 text-white py-4 rounded-xl font-semibold hover:bg-blue-700 transition duration-200"
