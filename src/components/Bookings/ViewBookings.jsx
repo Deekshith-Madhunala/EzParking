@@ -227,14 +227,14 @@ const ViewBookings = () => {
                                             )}
 
                                             {/* Check-Out Button */}
-                                            {booking.status === "Checked In" && !isReservationCompleted(booking) && (
+                                            {/* {booking.status === "Checked In" && !isReservationCompleted(booking) && (
                                                 <button
                                                     onClick={() => openModal(booking, "Checked Out")}
                                                     className="text-white bg-blue-500 px-4 py-2 rounded-lg hover:bg-blue-600 whitespace-nowrap"
                                                 >
                                                     Check-Out
                                                 </button>
-                                            )}
+                                            )} */}
 
                                             {/* Cancel Button */}
                                             {shouldShowCancelButton(booking) && !isReservationCompleted(booking) && (
