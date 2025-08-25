@@ -237,14 +237,14 @@ const ViewBookings = () => {
                                             )} */}
 
                                             {/* Cancel Button */}
-                                            {/* {shouldShowCancelButton(booking) && !isReservationCompleted(booking) && (
+                                            {shouldShowCancelButton(booking) && !isReservationCompleted(booking) && (
                                                 <button
                                                     onClick={() => openModal(booking, "Cancelled")}
                                                     className="text-white bg-red-500 px-4 py-2 rounded-lg hover:bg-red-600 whitespace-nowrap"
                                                 >
                                                     Cancel
                                                 </button>
-                                            )} */}
+                                            )}
                                         </div>
                                         {/* Timer Component */}
                                         {booking.status === "Checked In" && (
@@ -254,7 +254,7 @@ const ViewBookings = () => {
                                             />
                                         )}
                                     </div>
-                                </div>asd
+                                </div>
                             </div>
                         ))}
                     </div>
