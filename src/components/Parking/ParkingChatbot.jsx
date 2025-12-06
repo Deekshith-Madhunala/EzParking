@@ -5,7 +5,6 @@ const quickSuggestions = [
   "Available lots",
   "Pricing info",
   "Nearby parking",
-  "Reserve a spot",
   "Cheapest parking",
   "Lots with 2+ free spots",
   "Current bookings",
@@ -54,6 +53,7 @@ const ParkingChatbot = () => {
     setLoading(false);
   };
 
+  // Render parking lot card
   const renderParkingLotCard = (lot) => (
     <div
       key={lot.id}
@@ -64,7 +64,6 @@ const ParkingChatbot = () => {
         marginBottom: "10px",
         backgroundColor: lot.availableSpots > 0 ? "#e6f4ea" : "#fdecea",
         boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-        transition: "transform 0.2s",
       }}
     >
       <h4 style={{ fontWeight: "600", marginBottom: "6px" }}>{lot.name}</h4>
@@ -79,6 +78,7 @@ const ParkingChatbot = () => {
     </div>
   );
 
+  // Render reservation card
   const renderReservationCard = (res) => (
     <div
       key={res._id?._oid || Math.random()}
@@ -100,28 +100,31 @@ const ParkingChatbot = () => {
     </div>
   );
 
-  const renderContent = (content) => {
+  // Render content inside bot bubble
+  const renderBotContent = (content) => {
     if (Array.isArray(content)) {
       return content.map((item, idx) => {
         if (item.availableSpots !== undefined) return renderParkingLotCard(item);
         if (item.status && item.startTime && item.endTime) return renderReservationCard(item);
-        return <div key={idx}>{renderContent(item)}</div>;
+        return <div key={idx}>{renderBotContent(item)}</div>;
       });
     } else if (typeof content === "object" && content !== null) {
       if (content.availableSpots !== undefined) return renderParkingLotCard(content);
       if (content.status && content.startTime && content.endTime) return renderReservationCard(content);
+      if (content.message) return <p>{content.message}</p>; // LLM message
       return Object.entries(content).map(([k, v], idx) => (
         <div key={idx} style={{ marginBottom: "4px" }}>
-          <strong>{k}:</strong> {typeof v === "object" ? renderContent(v) : v?.toString()}
+          <strong>{k}:</strong> {typeof v === "object" ? renderBotContent(v) : v?.toString()}
         </div>
       ));
     } else {
-      return <div>{content?.toString()}</div>;
+      return <p>{content?.toString()}</p>;
     }
   };
 
   return (
     <>
+      {/* Floating Chat Button */}
       <button
         onClick={toggleChat}
         style={{
@@ -138,14 +141,12 @@ const ParkingChatbot = () => {
           fontSize: "28px",
           zIndex: 999,
           boxShadow: "0 6px 12px rgba(0,0,0,0.2)",
-          transition: "transform 0.2s",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
-        onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
       >
         💬
       </button>
 
+      {/* Chat Window */}
       {isOpen && (
         <div
           style={{
@@ -219,7 +220,20 @@ const ParkingChatbot = () => {
                     {msg.content}
                   </div>
                 ) : (
-                  <div style={{ maxWidth: "100%", width: "100%" }}>{renderContent(msg.content)}</div>
+                  <div
+                    style={{
+                      maxWidth: "75%",
+                      padding: "12px",
+                      borderRadius: "20px",
+                      backgroundColor: "#fff",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "6px",
+                    }}
+                  >
+                    {renderBotContent(msg.content)}
+                  </div>
                 )}
               </div>
             ))}
@@ -251,8 +265,6 @@ const ParkingChatbot = () => {
                   fontSize: "13px",
                   transition: "all 0.2s",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#d0d0d0")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#e0e0e0")}
               >
                 {suggestion}
               </button>
