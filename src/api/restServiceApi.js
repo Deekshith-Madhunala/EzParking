@@ -7,6 +7,35 @@
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/ui/search.html?q=chicago+Auditorium+Parking"
 
 
+
+/**
+ * fetch the LLM responses
+ * @param {User input prompt} query 
+ * @returns LLM responses as per the application data available
+ */
+export async function getParkingLLMResponse(query) {
+  try {
+    const response = await fetch("http://localhost:8080/api/parking-llm/ask", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.text(); // controller returns String
+    return data; // plain text response from LLM
+  } catch (error) {
+    console.error("Error fetching LLM response:", error);
+    return "Error fetching response from server.";
+  }
+}
+
+
 /**
  * 
  * @returns All Cities fromm the locations API

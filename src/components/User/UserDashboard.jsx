@@ -2,6 +2,7 @@ import React from 'react';
 import Header from './Header';
 import SearchBar from './SearchBar';
 import HowToPark from './HowToPark';
+import ParkingChatbot from '../Parking/ParkingChatbot.jsx';
 
 const UserDashboard = () => {
   return (
@@ -10,6 +11,7 @@ const UserDashboard = () => {
       <main className="max-w-7xl mx-auto px-6 py-12">
         <SearchBar />
         <HowToPark />
+        <ParkingChatbot />
       </main>
     </div>
   );
