@@ -45,10 +45,6 @@ const ParkingChatbot = () => {
         parsedResponse = cleanResponse;
       }
 
-      if (Array.isArray(parsedResponse)) {
-        parsedResponse = applyFiltersAndSorting(parsedResponse, msgText);
-      }
-
       setMessages([...newMessages, { role: "bot", content: parsedResponse }]);
     } catch (err) {
       console.error(err);
@@ -58,82 +54,27 @@ const ParkingChatbot = () => {
     setLoading(false);
   };
 
-  const applyFiltersAndSorting = (lots, query) => {
-    let filteredLots = [...lots];
-    const lowerQuery = query.toLowerCase();
-
-    const spotsMatch = lowerQuery.match(/(\d+)\+? free spots/);
-    if (spotsMatch) {
-      const minSpots = parseInt(spotsMatch[1], 10);
-      filteredLots = filteredLots.filter((lot) => lot.availableSpots >= minSpots);
-    }
-
-    const cityMatch = lowerQuery.match(/in ([a-zA-Z\s]+)/);
-    if (cityMatch) {
-      const city = cityMatch[1].trim();
-      filteredLots = filteredLots.filter(
-        (lot) => lot.location?.city?.toLowerCase() === city.toLowerCase()
-      );
-    }
-
-    if (lowerQuery.includes("cheapest")) {
-      filteredLots.sort((a, b) => a.pricePerHour - b.pricePerHour);
-    } else if (lowerQuery.includes("expensive")) {
-      filteredLots.sort((a, b) => b.pricePerHour - a.pricePerHour);
-    }
-
-    if (lowerQuery.includes("most available")) {
-      filteredLots.sort((a, b) => b.availableSpots - a.availableSpots);
-    }
-
-    return filteredLots;
-  };
-
   const renderParkingLotCard = (lot) => (
     <div
       key={lot.id}
       style={{
-        border: "1px solid #ccc",
-        borderRadius: "8px",
-        padding: "10px",
-        marginBottom: "8px",
-        backgroundColor: lot.availableSpots > 0 ? "#d4edda" : "#f8d7da",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+        border: "1px solid #e0e0e0",
+        borderRadius: "12px",
+        padding: "12px",
+        marginBottom: "10px",
+        backgroundColor: lot.availableSpots > 0 ? "#e6f4ea" : "#fdecea",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+        transition: "transform 0.2s",
       }}
     >
-      <h4 style={{ fontWeight: "bold", marginBottom: "5px" }}>{lot.name}</h4>
-      <p>
-        <strong>Available Spots:</strong> {lot.availableSpots} / {lot.totalSpots}
-      </p>
-      <p>
-        <strong>Price per Hour:</strong> ${lot.pricePerHour}
-      </p>
+      <h4 style={{ fontWeight: "600", marginBottom: "6px" }}>{lot.name}</h4>
+      <p><strong>Available:</strong> {lot.availableSpots} / {lot.totalSpots}</p>
+      <p><strong>Price:</strong> ${lot.pricePerHour}/hr</p>
       {lot.type && <p><strong>Type:</strong> {lot.type}</p>}
-      {lot.openingTime && lot.closingTime && (
-        <p>
-          <strong>Hours:</strong> {lot.openingTime} - {lot.closingTime}
-        </p>
-      )}
       {lot.location && (
         <p>
           <strong>Location:</strong> {lot.location.street}, {lot.location.city}, {lot.location.state} ({lot.location.zipCode})
         </p>
-      )}
-      {lot.slots && (
-        <div style={{ display: "flex", gap: "4px", marginTop: "5px" }}>
-          {lot.slots.map((slot) => (
-            <div
-              key={slot.slotId}
-              title={`Slot ${slot.slotId} - ${slot.isOccupied ? "Occupied" : "Free"}`}
-              style={{
-                width: "12px",
-                height: "12px",
-                borderRadius: "50%",
-                backgroundColor: slot.isOccupied ? "#dc3545" : "#28a745",
-              }}
-            />
-          ))}
-        </div>
       )}
     </div>
   );
@@ -142,15 +83,15 @@ const ParkingChatbot = () => {
     <div
       key={res._id?._oid || Math.random()}
       style={{
-        border: "1px solid #ccc",
-        borderRadius: "8px",
-        padding: "10px",
-        marginBottom: "8px",
-        backgroundColor: "#fff3cd",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+        border: "1px solid #e0e0e0",
+        borderRadius: "12px",
+        padding: "12px",
+        marginBottom: "10px",
+        backgroundColor: "#fff8e1",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
       }}
     >
-      <h4 style={{ fontWeight: "bold", marginBottom: "5px", color: "#856404" }}>Reservation</h4>
+      <h4 style={{ fontWeight: "600", marginBottom: "6px", color: "#856404" }}>Reservation</h4>
       <p><strong>Status:</strong> {res.status}</p>
       <p><strong>Start:</strong> {res.startTime?.dateTime || res.startTime}</p>
       <p><strong>End:</strong> {res.endTime?.dateTime || res.endTime}</p>
@@ -162,14 +103,9 @@ const ParkingChatbot = () => {
   const renderContent = (content) => {
     if (Array.isArray(content)) {
       return content.map((item, idx) => {
-        // Determine if it's a parking lot or reservation
-        if (item.availableSpots !== undefined) {
-          return renderParkingLotCard(item);
-        } else if (item.status && item.startTime && item.endTime) {
-          return renderReservationCard(item);
-        } else {
-          return <div key={idx}>{renderContent(item)}</div>;
-        }
+        if (item.availableSpots !== undefined) return renderParkingLotCard(item);
+        if (item.status && item.startTime && item.endTime) return renderReservationCard(item);
+        return <div key={idx}>{renderContent(item)}</div>;
       });
     } else if (typeof content === "object" && content !== null) {
       if (content.availableSpots !== undefined) return renderParkingLotCard(content);
@@ -195,13 +131,13 @@ const ParkingChatbot = () => {
           borderRadius: "50%",
           width: "60px",
           height: "60px",
-          backgroundColor: "#007bff",
+          backgroundColor: "#0a84ff",
           color: "#fff",
           border: "none",
           cursor: "pointer",
-          fontSize: "24px",
+          fontSize: "28px",
           zIndex: 999,
-          boxShadow: "0 4px 8px rgba(0,0,0,0.3)",
+          boxShadow: "0 6px 12px rgba(0,0,0,0.2)",
           transition: "transform 0.2s",
         }}
         onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.1)")}
@@ -217,26 +153,29 @@ const ParkingChatbot = () => {
             bottom: "90px",
             right: "20px",
             width: "560px",
-            height: "500px",
-            border: "1px solid #ccc",
-            borderRadius: "10px",
-            backgroundColor: "#fff",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            height: "600px",
+            borderRadius: "16px",
+            backgroundColor: "#f7f7f8",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
             zIndex: 999,
+            fontFamily: "'Inter', sans-serif",
           }}
         >
+          {/* Header */}
           <div
             style={{
-              backgroundColor: "#007bff",
+              backgroundColor: "#0a84ff",
               color: "#fff",
-              padding: "10px",
-              fontWeight: "bold",
+              padding: "12px 16px",
+              fontWeight: "600",
+              fontSize: "16px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
             }}
           >
             Parking Assistant
@@ -246,7 +185,7 @@ const ParkingChatbot = () => {
                 background: "transparent",
                 border: "none",
                 color: "#fff",
-                fontSize: "18px",
+                fontSize: "20px",
                 cursor: "pointer",
               }}
             >
@@ -254,43 +193,49 @@ const ParkingChatbot = () => {
             </button>
           </div>
 
-          <div style={{ flex: 1, padding: "10px", overflowY: "auto" }}>
+          {/* Messages */}
+          <div style={{ flex: 1, padding: "12px", overflowY: "auto" }}>
             {messages.map((msg, idx) => (
               <div
                 key={idx}
                 style={{
-                  textAlign: msg.role === "user" ? "right" : "left",
+                  display: "flex",
+                  justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
                   marginBottom: "10px",
                 }}
               >
                 {msg.role === "user" ? (
                   <div
                     style={{
-                      display: "inline-block",
-                      padding: "8px 12px",
-                      borderRadius: "15px",
-                      backgroundColor: "#007bff",
+                      maxWidth: "75%",
+                      padding: "10px 16px",
+                      borderRadius: "20px",
+                      backgroundColor: "#0a84ff",
                       color: "#fff",
+                      fontSize: "14px",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
                     }}
                   >
                     {msg.content}
                   </div>
                 ) : (
-                  renderContent(msg.content)
+                  <div style={{ maxWidth: "100%", width: "100%" }}>{renderContent(msg.content)}</div>
                 )}
               </div>
             ))}
-            {loading && <p>Parking Assistant is typing...</p>}
+            {loading && <p style={{ color: "#555" }}>Parking Assistant is typing...</p>}
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Quick Suggestions */}
           <div
             style={{
               display: "flex",
               flexWrap: "wrap",
-              gap: "5px",
-              padding: "5px 10px",
-              borderTop: "1px solid #ccc",
+              gap: "6px",
+              padding: "8px 12px",
+              borderTop: "1px solid #e0e0e0",
+              backgroundColor: "#fafafa",
             }}
           >
             {quickSuggestions.map((suggestion, idx) => (
@@ -298,36 +243,49 @@ const ParkingChatbot = () => {
                 key={idx}
                 onClick={() => sendMessage(suggestion)}
                 style={{
-                  padding: "5px 10px",
-                  backgroundColor: "#f1f1f1",
+                  padding: "6px 14px",
+                  backgroundColor: "#e0e0e0",
                   border: "none",
-                  borderRadius: "15px",
+                  borderRadius: "20px",
                   cursor: "pointer",
-                  fontSize: "12px",
+                  fontSize: "13px",
+                  transition: "all 0.2s",
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#d0d0d0")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#e0e0e0")}
               >
                 {suggestion}
               </button>
             ))}
           </div>
 
-          <div style={{ display: "flex", borderTop: "1px solid #ccc" }}>
+          {/* Input */}
+          <div style={{ display: "flex", borderTop: "1px solid #e0e0e0" }}>
             <input
               type="text"
               placeholder="Ask about parking..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              style={{ flex: 1, padding: "10px", border: "none" }}
+              style={{
+                flex: 1,
+                padding: "12px 16px",
+                border: "none",
+                fontSize: "14px",
+                backgroundColor: "#f7f7f8",
+                outline: "none",
+              }}
               onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
             />
             <button
               onClick={() => sendMessage(input)}
               style={{
-                padding: "10px 15px",
-                backgroundColor: "#007bff",
+                padding: "12px 16px",
+                backgroundColor: "#0a84ff",
                 color: "#fff",
                 border: "none",
                 cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
               }}
             >
               Send
