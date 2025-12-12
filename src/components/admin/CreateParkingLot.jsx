@@ -75,14 +75,6 @@ const CreateParkingLot = () => {
     if (isNaN(parseFloat(parkingData.pricePerHour))) errors.push("Price per hour must be a number.");
     const time12HrRegex = /^(0?[1-9]|1[0-2]):[0-5][0-9] (AM|PM)$/i;
 
-    if (!time12HrRegex.test(parkingData.openingTime)) {
-      errors.push("Opening time must be in hh:mm AM/PM format.");
-    }
-
-    if (!time12HrRegex.test(parkingData.closingTime)) {
-      errors.push("Closing time must be in hh:mm AM/PM format.");
-    }
-
     if (!locationData.latitude || !locationData.longitude) errors.push("Latitude and Longitude are required.");
     return errors;
   };
@@ -114,15 +106,7 @@ const CreateParkingLot = () => {
       alert("Validation Errors:\n" + errors.join("\n"));
       return;
     }
-
-    // Convert time to 24-hour format for API
-    const formattedData = {
-      ...parkingData,
-      openingTime: convertTo24Hour(parkingData.openingTime),
-      closingTime: convertTo24Hour(parkingData.closingTime),
-    };
-
-    createParkingLotWithLocation(formattedData, locationData);
+    createParkingLotWithLocation(parkingData, locationData);
   };
 
 
@@ -202,7 +186,7 @@ const CreateParkingLot = () => {
                 <h3 className="font-semibold text-lg mb-2 text-gray-800">Parking Lot Info</h3>
                 {Object.entries(parkingData).map(([key, val]) => {
                   // Do not display `createdAt` and `createdBy` in the UI
-                  if (key === "createdAt" || key === "createdBy" || key === "availableSpots" || key === "type") return null;
+                  if (key === "createdAt" || key === "createdBy" || key === "availableSpots" || key === "type" || key === "openingTime" || key === "closingTime") return null;
 
                   return (
                     <input
@@ -215,6 +199,85 @@ const CreateParkingLot = () => {
                     />
                   );
                 })}
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg mb-2 text-gray-800">Operating Hours</h3>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Opening Time */}
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-heading">
+                      Opening Time:
+                    </label>
+
+                    <div className="relative">
+                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                        <svg
+                          className="w-4 h-4 text-body"
+                          aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                          />
+                        </svg>
+                      </div>
+
+                      <input
+                        type="time"
+                        className="block w-full p-2.5 bg-white border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        value={parkingData.openingTime}
+                        onChange={(e) =>
+                          setParkingData({ ...parkingData, openingTime: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Closing Time */}
+                  <div>
+                    <label className="block mb-2 text-sm font-medium text-heading">
+                      Closing Time:
+                    </label>
+
+                    <div className="relative">
+                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                        <svg
+                          className="w-4 h-4 text-body"
+                          aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke="currentColor"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M12 8v4l3 3m6-3a 9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                          />
+                        </svg>
+                      </div>
+
+                      <input
+                        type="time"
+                        className="block w-full p-2.5 bg-white border border-gray-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                        value={parkingData.closingTime}
+                        onChange={(e) =>
+                          setParkingData({ ...parkingData, closingTime: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div>

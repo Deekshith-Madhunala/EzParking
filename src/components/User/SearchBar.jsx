@@ -82,6 +82,7 @@ const SearchBar = () => {
   const [selectedCity, setSelectedCity] = useState("");
   const today = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(today);
+  const [endDate, setendDate] = useState(today);
   const [startTime, setStartTime] = useState("13:00");
   const [endTime, setEndTime] = useState("14:00");
 
@@ -262,7 +263,8 @@ const SearchBar = () => {
                   Where are you going?
                 </label>
               </div>
-              <FloatingInput label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <FloatingInput label="Start Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <FloatingInput label="End Date" type="date" value={endDate} onChange={(e) => setendDate(e.target.value)} />
               <div className="flex gap-4">
                 <FloatingInput
                   label="Start Time"
